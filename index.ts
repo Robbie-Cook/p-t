@@ -20,12 +20,18 @@ interface InternalControl {
 enum Direction {
   Up,
   Down,
+  NotApplicable,
 }
 
-type ElevatorRequest = {
-  type: "RequestElevator";
-  direction: Direction;
-};
+type ElevatorRequest =
+  | {
+      type: "RequestElevator";
+      direction: Direction;
+    }
+  | {
+      type: "RequestElevatorFloor";
+      direction: Direction;
+    };
 
 type FloorRequestMap = {
   [FloorKey: number]: ElevatorRequest[];
@@ -66,7 +72,7 @@ class ElevatorEngine {
   /**
    * Get the nearest floor request in the direction of the elevator.
    * Helpful for reprioritizing floor requests.
-   * 
+   *
    * If direction not given, accepts any floor request.
    */
   private nearestFloorRequestInSameDirection(floorNumber: number) {
@@ -116,8 +122,10 @@ class ElevatorEngine {
         // Remove the floor request from the list of floor requests
         this.floorRequests[this.currentDestinationFloorNumber] = [
           ...this.floorRequests[this.currentDestinationFloorNumber].filter(
-            // Only remove the floor request if it is in the same direction
-            (fr) => !(fr.direction === this.elevatorDirection)
+            // Only remove the floor request if it is in the same direction or if the direction is not applicable
+            (fr) =>
+              !(fr.direction === this.elevatorDirection) ||
+              fr.direction === Direction.NotApplicable
           ),
         ];
 
@@ -138,11 +146,23 @@ class ElevatorEngine {
     }
   }
 
-  /** Request an  */
+  /**
+   * Request the elevator from a specific floor
+   */
   public requestElevator(userFloor: number, direction: Direction) {
     this.floorRequests[userFloor].push({
       type: "RequestElevator",
       direction,
+    } as ElevatorRequest);
+  }
+
+  /**
+   * Request a specific floor from inside the elevator
+   */
+  public requestFloorWhileInsideElevator(floor: number) {
+    this.floorRequests[floor].push({
+      type: "RequestElevatorFloor",
+      direction: Direction.NotApplicable,
     } as ElevatorRequest);
   }
 }
